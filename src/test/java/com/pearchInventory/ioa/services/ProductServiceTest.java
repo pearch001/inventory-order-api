@@ -1,6 +1,7 @@
 package com.pearchInventory.ioa.services;
 
 import com.pearchInventory.ioa.dtos.ProductDTO;
+import com.pearchInventory.ioa.exceptions.ProductNotFoundException;
 import com.pearchInventory.ioa.model.Product;
 import com.pearchInventory.ioa.repositories.ProductRepository;
 import org.junit.jupiter.api.Test;
@@ -88,7 +89,7 @@ class ProductServiceTest {
     void getProductBySku_ProductNotFound() {
         when(productRepository.findBySku(anyString())).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> productService.getProductBySku("SKU123"));
+        ProductNotFoundException exception = assertThrows(ProductNotFoundException.class, () -> productService.getProductBySku("SKU123"));
         assertEquals("Product not found", exception.getMessage());
         verify(productRepository).findBySku("SKU123");
     }
@@ -115,32 +116,41 @@ class ProductServiceTest {
     void updateStock_ProductNotFound() {
         when(productRepository.findBySku(anyString())).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> productService.updateStock("SKU123", 20));
+        ProductNotFoundException exception = assertThrows(ProductNotFoundException.class, () -> productService.updateStock("SKU123", 20));
         assertEquals("Product not found", exception.getMessage());
         verify(productRepository).findBySku("SKU123");
     }
 
     @Test
-    void deleteProduct_Success() {
+    void deleteProduct_SoftDelete_Success() {
+        // Arrange
         Product product = new Product();
         product.setName("Product1");
         product.setSku("SKU123");
+        product.setDeleted(false); // Initially not deleted
 
         when(productRepository.findBySku(anyString())).thenReturn(Optional.of(product));
-        doNothing().when(productRepository).delete(any(Product.class));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
 
+        // Act
         productService.deleteProduct("SKU123");
 
+        // Assert
+        assertTrue(product.isDeleted()); // Verify the product is marked as deleted
         verify(productRepository).findBySku("SKU123");
-        verify(productRepository).delete(product);
+        verify(productRepository).save(product);
     }
 
     @Test
-    void deleteProduct_ProductNotFound() {
+    void deleteProduct_SoftDelete_ProductNotFound() {
+        // Arrange
         when(productRepository.findBySku(anyString())).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> productService.deleteProduct("SKU123"));
+        // Act & Assert
+        ProductNotFoundException exception = assertThrows(ProductNotFoundException.class,
+                () -> productService.deleteProduct("SKU123"));
         assertEquals("Product not found", exception.getMessage());
         verify(productRepository).findBySku("SKU123");
+        verify(productRepository, never()).save(any(Product.class));
     }
 }

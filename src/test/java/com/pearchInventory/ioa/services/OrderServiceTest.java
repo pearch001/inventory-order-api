@@ -2,6 +2,10 @@ package com.pearchInventory.ioa.services;
 
 import com.pearchInventory.ioa.dtos.OrderDTO;
 import com.pearchInventory.ioa.dtos.OrderItemDTO;
+import com.pearchInventory.ioa.exceptions.CustomerNotFoundException;
+import com.pearchInventory.ioa.exceptions.InsufficientStockException;
+import com.pearchInventory.ioa.exceptions.OrderNotFoundException;
+import com.pearchInventory.ioa.exceptions.ProductNotFoundException;
 import com.pearchInventory.ioa.model.Customer;
 import com.pearchInventory.ioa.model.Order;
 import com.pearchInventory.ioa.model.Product;
@@ -70,7 +74,7 @@ class OrderServiceTest {
 
         when(customerRepository.findById(1L)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> orderService.createOrder(orderDTO));
+        CustomerNotFoundException exception = assertThrows(CustomerNotFoundException.class, () -> orderService.createOrder(orderDTO));
         assertEquals("Customer not found", exception.getMessage());
         verify(customerRepository).findById(1L);
     }
@@ -86,7 +90,7 @@ class OrderServiceTest {
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(productRepository.findBySkuForUpdate("SKU123")).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> orderService.createOrder(orderDTO));
+        ProductNotFoundException exception = assertThrows(ProductNotFoundException.class, () -> orderService.createOrder(orderDTO));
         assertEquals("Product not found: SKU123", exception.getMessage());
         verify(productRepository).findBySkuForUpdate("SKU123");
     }
@@ -106,7 +110,7 @@ class OrderServiceTest {
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(productRepository.findBySkuForUpdate("SKU123")).thenReturn(Optional.of(product));
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> orderService.createOrder(orderDTO));
+        InsufficientStockException exception = assertThrows(InsufficientStockException.class, () -> orderService.createOrder(orderDTO));
         assertEquals("Insufficient stock for product: SKU123", exception.getMessage());
         verify(productRepository).findBySkuForUpdate("SKU123");
     }
@@ -149,7 +153,7 @@ class OrderServiceTest {
     void getOrderById_OrderNotFound() {
         when(orderRepository.findById(1L)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> orderService.getOrderById(1L));
+        OrderNotFoundException exception = assertThrows(OrderNotFoundException.class, () -> orderService.getOrderById(1L));
         assertEquals("Order not found", exception.getMessage());
         verify(orderRepository).findById(1L);
     }
